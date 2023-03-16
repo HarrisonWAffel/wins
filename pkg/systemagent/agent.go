@@ -3,7 +3,6 @@ package systemagent
 import (
 	"context"
 	"fmt"
-
 	"github.com/pkg/errors"
 	"github.com/rancher/system-agent/pkg/applyinator"
 	"github.com/rancher/system-agent/pkg/config"
@@ -11,7 +10,9 @@ import (
 	"github.com/rancher/system-agent/pkg/k8splan"
 	"github.com/rancher/system-agent/pkg/localplan"
 	"github.com/rancher/system-agent/pkg/version"
+	"github.com/rancher/wins/pkg/network"
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 type Agent struct {
@@ -43,6 +44,20 @@ func (a *Agent) Run(ctx context.Context) error {
 
 		if err := config.Parse(a.cfg.ConnectionInfoFile, &connInfo); err != nil {
 			return fmt.Errorf("unable to parse connection info file: %v", err)
+		}
+
+		kc, err := clientcmd.RESTConfigFromKubeConfig([]byte(connInfo.KubeConfig))
+		if err != nil {
+			return fmt.Errorf("unable to parse kubeconfig from connection info file: %w", err)
+		}
+
+		// We need to ensure we can reach the host before we start any wrangler controllers.
+		// Windows services start asynchronously, and wins may have started before other core services which
+		// could result in an inability to reach the rancher host. This check allows us to wait for a few seconds
+		// so we don't prematurely declare an inability to connect
+		retryLimit := 5
+		if !network.EnsureHostIsReachable(kc, retryLimit) {
+			return fmt.Errorf("could not establish a connection with the rancher host after %d attempts", retryLimit)
 		}
 
 		k8splan.Watch(ctx, *applier, connInfo)

@@ -81,14 +81,37 @@ func registerService() error {
 		defaults.WindowsServiceName,
 		binaryPath,
 		mgr.Config{
-			ServiceType:    windows.SERVICE_WIN32_OWN_PROCESS,
-			StartType:      mgr.StartAutomatic,
-			ErrorControl:   mgr.ErrorNormal,
-			DisplayName:    defaults.WindowsServiceDisplayName,
-			BinaryPathName: binaryPath,
+			ServiceType:      windows.SERVICE_WIN32_OWN_PROCESS,
+			StartType:        mgr.StartAutomatic,
+			ErrorControl:     mgr.ErrorNormal,
+			DelayedAutoStart: true, // start wins after other core services are running
+			DisplayName:      defaults.WindowsServiceDisplayName,
+			BinaryPathName:   binaryPath,
+			// networking services are needed dependencies,
+			// otherwise the system agent may fail to connect
+			// on resource constrained systems due to asynchronous
+			// service startup.
+			//  todo; in cases where we have not have the required dependencies, do we still start once they're available?
+			Dependencies: []string{
+				"Dhcp",
+				"Dnscache",
+				"hns", // host network service, enabled with the 'Containers' feature and used for container networking
+			},
 		},
 		args...,
 	)
+
+	// hns has, from what I can tell, started considerably later than wins. However, it has not prevented the agent connection request from functioning. I suspect a sub second race
+	// condition within either the dhcp or dns cache. I know my rancher server is up and running, so it has to be an issue with the vm connectivity. At this point, just adding a 5 second pause
+	// on the whole process seems like it would fix the problem.
+	//
+	// 2 issues
+	// 1. agent runs the install command but Start-Service doesn't work
+	// 2. agent can't even connect back to the rancher server due to a network error
+	//
+	// 1 can be resolved by trying to start the service again, indicating it may be a timing issue
+	// 2 should be able to be resolved by waiting a bit for dhcp and dns to get up and running
+
 	if err != nil {
 		return errors.Wrap(err, "could not create")
 	}
