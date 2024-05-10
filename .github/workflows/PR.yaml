@@ -1,0 +1,48 @@
+name: Pull Request
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # While golanglint-ci is also run in the mage file,
+  # adding an explicit gha step highlights the syntax errors
+  # when reviewing PRs
+  golint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@a4f60bb28d35aeee14e6880718e0c85ff1882e64
+        with:
+          version: v1.55
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows-2019, windows-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: 'stable'
+    
+    - name: Install Dependencies
+      run: |
+        go install github.com/magefile/mage@v1.15.0
+        go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
+
+    - name: Run E2E tests
+      shell: pwsh
+      run: |
+        Install-Module -Name DockerMsftProvider -Force
+        Import-Module -Name HostNetworkingService
+        set PSModulePath=&&powershell -command "mage TestAll"
