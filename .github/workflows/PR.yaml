@@ -47,3 +47,8 @@ jobs:
         Install-Module -Name DockerMsftProvider -Force
         Import-Module -Name HostNetworkingService
         set PSModulePath=&&powershell -command "mage TestAll"
+
+    - name: Run SUC Image Unit Tests
+      shell: pwsh
+      run: |
+        go test ./suc/...
