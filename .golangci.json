@@ -16,8 +16,7 @@
       "tests",
       "scripts",
       "charts",
-      "package",
-      "embed.go"
+      "package"
     ]
   }
 }
