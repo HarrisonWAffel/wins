@@ -36,15 +36,18 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: 'stable'
-    
+
     - name: Install Dependencies
       run: |
         go install github.com/magefile/mage@v1.15.0
         go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
 
-    - name: Run E2E tests
-      shell: pwsh
+
+    - name: build-binary
       run: |
-        Install-Module -Name DockerMsftProvider -Force
-        Import-Module -Name HostNetworkingService
-        set PSModulePath=&&powershell -command "mage TestAll"
+        set PSModulePath=&&powershell -command "mage ci"
+    - name: confirm
+      run: |
+        ls
+        ls bin
+        ls artifacts

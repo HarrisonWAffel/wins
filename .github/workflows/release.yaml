@@ -31,15 +31,16 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
 
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
       - name: Install Dependencies
         run: |
           go install github.com/magefile/mage@v1.15.0
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
 
-      - name: Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 'stable'
       - name: build-binary
         run: |
           set PSModulePath=&&powershell -command "mage ci"
