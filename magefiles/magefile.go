@@ -235,7 +235,7 @@ func TestAll() error {
 }
 
 func CI() {
-	mg.Deps(Test)
+	mg.Deps(TestAll)
 }
 
 func flags(version string, commit string) string {
