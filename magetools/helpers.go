@@ -1,6 +1,7 @@
 package magetools
 
 import (
+	"os"
 	"strings"
 
 	"github.com/magefile/mage/sh"
@@ -31,4 +32,20 @@ func GetCommit() (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(result), nil
+}
+
+func CopyFile(source, dest string) error {
+	_, err := os.Stat(source)
+	if err != nil {
+		return err
+	}
+	b, err := os.ReadFile(source)
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(dest, b, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	return nil
 }
