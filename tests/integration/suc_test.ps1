@@ -61,6 +61,7 @@ Describe "SUC rancher-wins Service Configurator" {
     It "enables rancher-wins delayed start" {
         Log-Info "TEST: Enabling rancher-wins delayed start"
         $env:CATTLE_ENABLE_WINS_DELAYED_START = "true"
+        $env:CATTLE_WINS_SKIP_BINARY_UPGRADE = "true"
 
         Execute-Binary -FilePath "bin\wins-suc.exe"
         $LASTEXITCODE | Should -Be -ExpectedValue 0
@@ -75,6 +76,7 @@ Describe "SUC rancher-wins Service Configurator" {
     It "disables rancher-wins delayed start" {
         Log-Info "TEST: Disabling rancher-wins delayed start"
         $env:CATTLE_ENABLE_WINS_DELAYED_START = "false"
+        $env:CATTLE_WINS_SKIP_BINARY_UPGRADE = "true"
 
         Execute-Binary -FilePath "bin\wins-suc.exe"
         $LASTEXITCODE | Should -Be -ExpectedValue 0
@@ -89,6 +91,7 @@ Describe "SUC rancher-wins Service Configurator" {
     It "enables rke2 service dependency" {
         Log-Info "TEST: Enabling rke2 service dependency"
         $env:CATTLE_ENABLE_WINS_SERVICE_DEPENDENCY = "true"
+        $env:CATTLE_WINS_SKIP_BINARY_UPGRADE = "true"
 
         Execute-Binary -FilePath "bin\wins-suc.exe"
         $LASTEXITCODE | Should -Be -ExpectedValue 0
@@ -107,6 +110,7 @@ Describe "SUC rancher-wins Service Configurator" {
         # Dependency will be disabled whenever CATTLE_ENABLE_WINS_SERVICE_DEPENDENCY is
         # set to a value other than "true" (including not being set at all)
         $env:CATTLE_ENABLE_WINS_SERVICE_DEPENDENCY = ""
+        $env:CATTLE_WINS_SKIP_BINARY_UPGRADE = "true"
 
         Execute-Binary -FilePath "bin\wins-suc.exe"
         $LASTEXITCODE | Should -Be -ExpectedValue 0
@@ -124,6 +128,7 @@ Describe "SUC rancher-wins Service Configurator" {
     It "Updates rancher-wins config file while rke2 dependency exists" {
         Log-Info "TEST: Enabling rke2 service dependency"
         $env:CATTLE_ENABLE_WINS_SERVICE_DEPENDENCY = "true"
+        $env:CATTLE_WINS_SKIP_BINARY_UPGRADE = "true"
 
         Execute-Binary -FilePath "bin\wins-suc.exe"
         $LASTEXITCODE | Should -Be -ExpectedValue 0
