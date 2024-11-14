@@ -18,18 +18,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: retrieve dockerhub credentials
-        uses: rancher-eio/read-vault-secrets@main
-        with:
-          secrets: |
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
+#      - name: retrieve dockerhub credentials
+#        uses: rancher-eio/read-vault-secrets@main
+#        with:
+#          secrets: |
+#            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
+#            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
+#      - name: Log in to Docker Hub
+#        uses: docker/login-action@v3
+#        with:
+#          username: ${{ env.DOCKER_USERNAME }}
+#          password: ${{ env.DOCKER_PASSWORD }}
 
       - name: Install Go
         uses: actions/setup-go@v5
@@ -51,9 +51,9 @@ jobs:
       - name: Build Windows 2022
         run: ./scripts/build-image.ps1 -NanoServerVersion "ltsc2022" -Repo "${{ env.REPO }}" -Tag "${{ env.TAG }}"
 
-      - name: push images
-        run: | 
-          docker push ${{ env.REPO }}/wins:${{ env.TAG }}-windows-ltsc2022
+#      - name: push images
+#        run: |
+#          docker push ${{ env.REPO }}/wins:${{ env.TAG }}-windows-ltsc2022
 
   create-push-image-windows-2019:
     # Due to limitations on the number of free runners in the Rancher org (20)
@@ -69,18 +69,18 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - name: retrieve dockerhub credentials
-        uses: rancher-eio/read-vault-secrets@main
-        with:
-          secrets: |
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
+#      - name: retrieve dockerhub credentials
+#        uses: rancher-eio/read-vault-secrets@main
+#        with:
+#          secrets: |
+#            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
+#            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
+#      - name: Log in to Docker Hub
+#        uses: docker/login-action@v3
+#        with:
+#          username: ${{ env.DOCKER_USERNAME }}
+#          password: ${{ env.DOCKER_PASSWORD }}
 
       # This step is required otherwise the 'mage'
       # command cannot be used in subsequent steps
@@ -104,9 +104,9 @@ jobs:
       - name: Build Windows 2019
         run: ./scripts/build-image.ps1 -NanoServerVersion "ltsc2019" -Repo "${{ env.REPO }}" -Tag "${{ env.TAG }}"
 
-      - name: push images
-        run: |
-          docker push ${{ env.REPO }}/wins:${{ env.TAG }}-windows-ltsc2019
+#      - name: push images
+#        run: |
+#          docker push ${{ env.REPO }}/wins:${{ env.TAG }}-windows-ltsc2019
 
   create-github-release:
     needs: [ create-push-image-windows-2019, create-push-image-windows-2022 ]
@@ -137,29 +137,29 @@ jobs:
       - name: Create GH Release
         run: gh release create ${{ env.TAG }} --verify-tag --generate-notes .\artifacts\wins.exe .\artifacts\sha256.txt .\artifacts\sha512.txt LICENSE
 
-  create-manifest:
-    needs: [ create-push-image-windows-2019, create-push-image-windows-2022 ]
-    permissions:
-      id-token: write
-    env:
-      REPO: rancher
-      TAG: ${{ github.ref_name }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: retrieve dockerhub credentials
-        uses: rancher-eio/read-vault-secrets@main
-        with:
-          secrets: |
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
-
-      - name: create manifest list
-        run: |
-          docker manifest create ${{ env.REPO }}/wins:${{ env.TAG }} ${{ env.REPO }}/wins:${{ env.TAG }}-windows-ltsc2022 ${{ env.REPO }}/wins:${{ env.TAG }}-windows-ltsc2019
-          docker manifest push ${{ env.REPO }}/wins:${{ env.TAG }}
+#  create-manifest:
+#    needs: [ create-push-image-windows-2019, create-push-image-windows-2022 ]
+#    permissions:
+#      id-token: write
+#    env:
+#      REPO: rancher
+#      TAG: ${{ github.ref_name }}
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: retrieve dockerhub credentials
+#        uses: rancher-eio/read-vault-secrets@main
+#        with:
+#          secrets: |
+#            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
+#            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
+#
+#      - name: Log in to Docker Hub
+#        uses: docker/login-action@v3
+#        with:
+#          username: ${{ env.DOCKER_USERNAME }}
+#          password: ${{ env.DOCKER_PASSWORD }}
+#
+#      - name: create manifest list
+#        run: |
+#          docker manifest create ${{ env.REPO }}/wins:${{ env.TAG }} ${{ env.REPO }}/wins:${{ env.TAG }}-windows-ltsc2022 ${{ env.REPO }}/wins:${{ env.TAG }}-windows-ltsc2019
+#          docker manifest push ${{ env.REPO }}/wins:${{ env.TAG }}
