@@ -41,10 +41,10 @@ func TestCreatePipe(t *testing.T) {
 			_, err := New(tt.args.name, tt.args.sddl, tt.args.bufferSize)
 			if err != nil {
 				if !tt.error {
-					t.Errorf("error occurred, %v", err)
+					t.Errorf("error occurred, " + err.Error())
 				}
 				if !strings.Contains(err.Error(), tt.want) {
-					t.Errorf("error, should be %s, but got %s", tt.want, err.Error())
+					t.Errorf("error, should be " + tt.want + ", but got " + err.Error())
 				}
 			}
 		})

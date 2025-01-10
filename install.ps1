@@ -9,7 +9,6 @@
       - CATTLE_AGENT_LOGLEVEL (default: debug)
       - CATTLE_AGENT_CONFIG_DIR (default: C:/etc/rancher/agent)
       - CATTLE_AGENT_VAR_DIR (default: C:/var/lib/rancher/agent)
-      - CATTLE_ENABLE_WINS_DELAYED_START (default: false)
       Rancher 2.6+ Variables
       - CATTLE_SERVER
       - CATTLE_TOKEN
@@ -64,10 +63,7 @@ param (
     $Worker,
     [Parameter()]
     [Switch]
-    $StrictTlsVerification,
-    [Parameter()]
-    [Switch]
-    $DelayedStart
+    $StrictTlsVerification
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -243,16 +239,6 @@ function Invoke-WinsInstaller {
         }
         if ($StrictTlsVerification -eq $true) {
             $env:STRICT_VERIFY = "true"
-        }
-
-        if (-Not $env:CATTLE_ENABLE_WINS_DELAYED_START) {
-            $env:CATTLE_ENABLE_WINS_DELAYED_START = "false"
-        } else {
-            $env:CATTLE_ENABLE_WINS_DELAYED_START = $env:CATTLE_ENABLE_WINS_DELAYED_START.ToLower()
-        }
-
-        if ($DelayedStart -eq $true) {
-            $env:CATTLE_ENABLE_WINS_DELAYED_START = "true"
         }
 
         if ($env:CATTLE_AGENT_BINARY_LOCAL -eq "true") {
@@ -771,11 +757,7 @@ csi-proxy:
         catch {
             Write-LogInfo "$serviceName service not found, enabling agent service."
             Push-Location c:\usr\local\bin
-            if ($env:CATTLE_ENABLE_WINS_DELAYED_START -eq "true") {
-                wins.exe srv app run --register --delayed-start
-            } else {
-                wins.exe srv app run --register
-            }
+            wins.exe srv app run --register
             Pop-Location
             Start-Sleep -s 5
         }

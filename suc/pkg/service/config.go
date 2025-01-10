@@ -1,4 +1,4 @@
-package config
+package service
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	DirEnvVar            = "CATTLE_WINS_CONFIG_DIR"
+	ConfigDirEnvVar      = "CATTLE_WINS_CONFIG_DIR"
 	DebugEnvVar          = "CATTLE_WINS_DEBUG"
 	AgentStringTLSEnvVar = "STRICT_VERIFY"
 )
@@ -23,16 +23,16 @@ func getConfigPath(path string) string {
 	if path != "" {
 		return path
 	}
-	if path = os.Getenv(DirEnvVar); path != "" {
+	if path = os.Getenv(ConfigDirEnvVar); path != "" {
 		return path
 	}
 	return defaultConfigFile
 }
 
-// LoadConfig utilizes the DirEnvVar environment variable and path parameter to load
+// loadConfig utilizes the ConfigDirEnvVar environment variable and path parameter to load
 // a config file located on the host. If both are provided, the path parameter will take
 // precedence. If neither are provided, then the defaultConfigFile path is used.
-func LoadConfig(path string) (*config.Config, error) {
+func loadConfig(path string) (*config.Config, error) {
 	cfg := config.DefaultConfig()
 	err := config.LoadConfig(getConfigPath(path), cfg)
 	if err != nil {
@@ -42,10 +42,10 @@ func LoadConfig(path string) (*config.Config, error) {
 	return cfg, nil
 }
 
-// SaveConfig utilizes the DirEnvVar environment variable and path parameter to save
+// saveConfig utilizes the ConfigDirEnvVar environment variable and path parameter to save
 // a config file on the host. If both are provided, the path parameter will take
 // precedence. If neither are provided, then the defaultConfigFile path is used.
-func SaveConfig(cfg *config.Config, path string) error {
+func saveConfig(cfg *config.Config, path string) error {
 	return config.SaveConfig(getConfigPath(path), cfg)
 }
 
@@ -58,26 +58,26 @@ func SaveConfig(cfg *config.Config, path string) error {
 func UpdateConfigFromEnvVars() (bool, error) {
 	logrus.Info("Loading config from host")
 	path := getConfigPath("")
-	cfg, err := LoadConfig(path)
+	cfg, err := loadConfig(path)
 	if err != nil {
 		return false, fmt.Errorf("failed to load config: %v", err)
 	}
 
 	configNeedsUpdate := false
 	logrus.Infof("Checking the %s value. This is a boolean flag, expecting 'true' or 'false'", DebugEnvVar)
-
-	v := os.Getenv(DebugEnvVar)
-	logrus.Infof("Found value '%s' for %s", v, DebugEnvVar)
-	givenBool := strings.ToLower(v) == "true"
-	if cfg.Debug != givenBool {
-		cfg.Debug = givenBool
-		configNeedsUpdate = true
+	if v := os.Getenv(DebugEnvVar); v != "" {
+		logrus.Infof("Found value '%s' for %s", v, DebugEnvVar)
+		givenBool := strings.ToLower(v) == "true"
+		if cfg.Debug != givenBool {
+			cfg.Debug = givenBool
+			configNeedsUpdate = true
+		}
 	}
 
 	logrus.Infof("Checking the %s value. This is a boolean flag, expecting 'true' or 'false'", AgentStringTLSEnvVar)
 	if v := os.Getenv(AgentStringTLSEnvVar); v != "" {
 		logrus.Infof("Found value '%s' for %s", v, AgentStringTLSEnvVar)
-		givenBool = strings.ToLower(v) == "true"
+		givenBool := strings.ToLower(v) == "true"
 		if cfg.AgentStrictTLSMode != givenBool {
 			cfg.AgentStrictTLSMode = givenBool
 			configNeedsUpdate = true
@@ -87,7 +87,7 @@ func UpdateConfigFromEnvVars() (bool, error) {
 	// If we haven't made any changes there is no reason to update the config file
 	if configNeedsUpdate {
 		logrus.Info("Detected a change in configuration, updating config file")
-		err = SaveConfig(cfg, path)
+		err = saveConfig(cfg, path)
 		if err != nil {
 			return configNeedsUpdate, fmt.Errorf("failed to save config: %w", err)
 		}

@@ -1,6 +1,6 @@
 //go:build windows
 
-package config
+package service
 
 import (
 	"encoding/json"
@@ -46,9 +46,9 @@ func setupTest(vars []v1.EnvVar, t *testing.T) {
 		}
 	}
 
-	err = os.Setenv(DirEnvVar, configFileLoc)
+	err = os.Setenv(ConfigDirEnvVar, configFileLoc)
 	if err != nil {
-		t.Fatalf("Could not set %s", DirEnvVar)
+		t.Fatalf("Could not set %s", ConfigDirEnvVar)
 	}
 
 	err = os.Remove(configFileLoc)
