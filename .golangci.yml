@@ -1,0 +1,18 @@
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - revive
+    - misspell
+    - ineffassign
+    - gofmt
+issues:
+  exclude-files:
+    - "/zz_generated_"
+    - docs
+    - tests
+    - scripts
+    - charts
+    - package
+    - pkg/powershell/powershell.go
+    - "*/embed.go"
