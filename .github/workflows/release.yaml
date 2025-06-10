@@ -9,7 +9,7 @@ jobs:
   create-push-image-windows-2022:
     runs-on: windows-2022
     env:
-      REPO: rancher
+      REPO: harrisonwaffel
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       TAG: ${{ github.ref_name }}
     permissions:
@@ -58,7 +58,7 @@ jobs:
   create-push-image-windows-2019-using-2025:
     runs-on: windows-2025
     env:
-      REPO: rancher
+      REPO: harrisonwaffel
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       TAG: ${{ github.ref_name }}
     permissions:
@@ -140,7 +140,7 @@ jobs:
     permissions:
       id-token: write
     env:
-      REPO: rancher
+      REPO: harrisonwaffel
       TAG: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     steps:
