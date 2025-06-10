@@ -1,12 +1,21 @@
 $ErrorActionPreference = "Stop"
 
 # docker build
-$buildTags = @{ "17763" = "1809"; "20348" = "ltsc2022";}
+$buildTags = @{ "17763" = "1809"; "20348" = "ltsc2022"; "26100" = "2025"}
 $buildNumber = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\' -ErrorAction Ignore).CurrentBuildNumber
+Write-Host "BUILD NUMBER IS $buildNumber"
 $SERVERCORE_VERSION = $buildTags[$buildNumber]
 if (-not $SERVERCORE_VERSION) {
     $SERVERCORE_VERSION = "1809"
 }
+
+if ($SERVERCORE_VERSION -eq "2025") {
+    # are we actually running on a different version? If so, we can't continue as
+    # we won't be able to run any of the containers that we build.
+    Write-Host "Running on Windows 2025, integration tests not yet supported. Exiting."
+    exit 0
+}
+
 
 Write-Host "Server core version: $SERVERCORE_VERSION"
 
