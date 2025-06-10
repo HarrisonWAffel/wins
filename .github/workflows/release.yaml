@@ -18,18 +18,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: retrieve dockerhub credentials
-        uses: rancher-eio/read-vault-secrets@main
-        with:
-          secrets: |
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
+#      - name: retrieve dockerhub credentials
+#        uses: rancher-eio/read-vault-secrets@main
+#        with:
+#          secrets: |
+#            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
+#            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Install Go
         uses: actions/setup-go@v5
@@ -56,10 +56,9 @@ jobs:
           docker push ${{ env.REPO }}/wins:${{ env.TAG }}-windows-ltsc2022
 
   create-push-image-windows-2019:
-    # Due to limitations on the number of free runners in the Rancher org (20)
-    # we do not build 2019 and 2022 in parallel
-    needs: [create-push-image-windows-2022]
-    runs-on: windows-2019
+    # Windows 2019 runners were removed from GHA, however 2025 can build
+    # 2019 images as long as no 'RUN' statements are used
+    runs-on: windows-2025
     env:
       REPO: rancher
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -70,18 +69,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: retrieve dockerhub credentials
-        uses: rancher-eio/read-vault-secrets@main
-        with:
-          secrets: |
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
+#      - name: retrieve dockerhub credentials
+#        uses: rancher-eio/read-vault-secrets@main
+#        with:
+#          secrets: |
+#            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
+#            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       # This step is required otherwise the 'mage'
       # command cannot be used in subsequent steps
@@ -102,7 +101,7 @@ jobs:
       # Note: We cannot use the docker/build-push-action as it requires dependencies
       # which cannot be installed onto windows VMs. Additionally, it is not possible to cross compile
       # Windows images on linux. So, we're stuck with manual docker commands.
-      - name: Build Windows 2019
+      - name: Build Windows 2019 on Windows 2025
         run: ./scripts/build-image.ps1 -NanoServerVersion "ltsc2019" -Repo "${{ env.REPO }}" -Tag "${{ env.TAG }}"
 
       - name: push images
@@ -147,18 +146,18 @@ jobs:
       TAG: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     steps:
-      - name: retrieve dockerhub credentials
-        uses: rancher-eio/read-vault-secrets@main
-        with:
-          secrets: |
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
+#      - name: retrieve dockerhub credentials
+#        uses: rancher-eio/read-vault-secrets@main
+#        with:
+#          secrets: |
+#            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
+#            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: create manifest list
         run: |
