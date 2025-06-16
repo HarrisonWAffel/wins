@@ -2,6 +2,8 @@ module github.com/rancher/wins
 
 go 1.23.1
 
+toolchain go1.24.4
+
 replace (
 	github.com/docker/cli => github.com/docker/cli v27.4.1+incompatible
 	github.com/docker/docker => github.com/docker/docker v27.4.1+incompatible
