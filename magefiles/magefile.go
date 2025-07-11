@@ -204,7 +204,6 @@ func Test() error {
 // Integration target must be run on a wins system
 // with Containers feature / docker installed
 func Integration() error {
-	mg.Deps(BuildAll)
 	log.Printf("[Integration] Starting Integration Test for wins version %s \n", version)
 
 	// make sure the docker files have access to the exe
@@ -226,8 +225,19 @@ func Integration() error {
 	return nil
 }
 
+func PowershellUnitTests() error {
+	log.Printf("[PowershellUnitTests] Starting unit tests for inws version %s \n", version)
+
+	if err := sh.RunV("powershell.exe", filepath.Join("tests/unit/unit_suite_test.ps1")); err != nil {
+		return err
+	}
+
+	log.Printf("[Test] successfully ran unit tests on wins version %s \n", version)
+	return nil
+}
+
 func TestAll() error {
-	mg.SerialDeps(Test, Integration)
+	mg.SerialDeps(Test, PowershellUnitTests, Integration)
 	return nil
 }
 
