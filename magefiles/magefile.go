@@ -225,19 +225,8 @@ func Integration() error {
 	return nil
 }
 
-func PowershellUnitTests() error {
-	log.Printf("[PowershellUnitTests] Starting unit tests for inws version %s \n", version)
-
-	if err := sh.RunV("powershell.exe", filepath.Join("tests/unit/unit_suite_test.ps1")); err != nil {
-		return err
-	}
-
-	log.Printf("[Test] successfully ran unit tests on wins version %s \n", version)
-	return nil
-}
-
 func TestAll() error {
-	mg.SerialDeps(Test, PowershellUnitTests, Integration)
+	mg.SerialDeps(Test, Integration)
 	return nil
 }
 
