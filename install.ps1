@@ -388,6 +388,7 @@ function Invoke-WinsInstaller {
         $caCertsPath = "cacerts"
         $env:RANCHER_CERT = Join-Path -Path $env:CATTLE_AGENT_CONFIG_DIR -ChildPath "ranchercert"
         if (-Not $env:CATTLE_CA_CHECKSUM) {
+            Write-LogInfo "DID NOT FIND CA_CHECKSUM"
             return
         }
 
