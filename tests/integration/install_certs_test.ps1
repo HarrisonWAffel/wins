@@ -81,6 +81,9 @@ Describe "Install script certificate tests" {
         $checkSum = $certData.Checksum
         PrependToFile -path "install-certs-test.ps1" -value "`$env:CATTLE_CA_CHECKSUM = `"$checkSum`""
 
+        $content = Get-Content "install-certs-test.ps1"
+        Log-Info $content
+
         # Start a mock Rancher API to mimic the /cacerts endpoint
         Log-Info "Starting mock Rancher API"
         $job = Start-Job -ScriptBlock $StartMockRancherHandler -ArgumentList $certData.FinalCertBlocks
@@ -125,7 +128,6 @@ Describe "Install script certificate tests" {
         # certificates from the built-in stores
         Log-Info "Ensuring that certs are not yet imported"
 
-        Log-Info $certData.ThumbPrints
         $certData.ThumbPrints.Length | Should -BeGreaterThan 0
         foreach ($thumbPrint in $certData.ThumbPrints)
         {
@@ -136,7 +138,10 @@ Describe "Install script certificate tests" {
 
         $checkSum = $certData.Checksum
         PrependToFile -path "install-certs-test.ps1" -value "`$env:CATTLE_CA_CHECKSUM = `"$checkSum`""
-        Log-Info $(Get-Content install-certs-test.ps1)
+
+        $content = Get-Content "install-certs-test.ps1"
+        Log-Info $content
+
         Log-Info "Starting mock Rancher API"
         $job = Start-Job -ScriptBlock $StartMockRancherHandler -ArgumentList $certData.FinalCertBlocks
         Start-Sleep 1
