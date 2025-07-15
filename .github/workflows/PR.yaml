@@ -2,6 +2,7 @@ name: Pull Request
 
 on:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,32 +13,43 @@ jobs:
       fail-fast: false
       matrix:
         platform: [windows-2022]
+
+    env:
+      GOCACHE: D:\gocache
+      GOMODCACHE: D:\gomodcache
+      GOTMPDIR: D:\gotmp
+
     runs-on: ${{ matrix.platform }}
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    # This step is required otherwise the 'mage'
-    # command cannot be used in subsequent steps
-    - name: Install Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: 'stable'
+      # This step is required otherwise the 'mage'
+      # command cannot be used in subsequent steps
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
 
-    - name: Install Dependencies
-      run: |
-        go install github.com/magefile/mage@v1.15.0
-        go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.7
+      - name: Setup Tmp Dir
+        run: |
+          mkdir D:\gotmp
+        shell: pwsh
 
-    - name: Build
-      shell: pwsh
-      run: |
-        set PSModulePath=&&powershell -command "mage BuildAll"
+      - name: Install Dependencies
+        run: |
+          go install github.com/magefile/mage@v1.15.0
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.7
 
-    - name: Run E2E tests
-      shell: pwsh
-      run: |
-        Install-Module -Name DockerMsftProvider -Force
-        Import-Module -Name HostNetworkingService
-        set PSModulePath=&&powershell -command "mage ci"
+      - name: Build
+        shell: pwsh
+        run: |
+          set PSModulePath=&&powershell -command "mage BuildAll"
+
+      - name: Run E2E tests
+        shell: pwsh
+        run: |
+          Install-Module -Name DockerMsftProvider -Force
+          Import-Module -Name HostNetworkingService
+          set PSModulePath=&&powershell -command "mage TestAll"
