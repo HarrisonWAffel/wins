@@ -388,19 +388,19 @@ function Invoke-WinsInstaller {
         $caCertsPath = "cacerts"
         $env:RANCHER_CERT = Join-Path -Path $env:CATTLE_AGENT_CONFIG_DIR -ChildPath "ranchercert"
         if (-Not $env:CATTLE_CA_CHECKSUM) {
-            Write-LogInfo "DID NOT FIND CA_CHECKSUM"
+            Write-LogInfo "DID NOT FIND CATTLE_CA_CHECKSUM"
             return
         }
 
         curl.exe --insecure -sfL $env:CATTLE_SERVER/$caCertsPath -o $env:RANCHER_CERT
         if (-Not(Test-Path -Path $env:RANCHER_CERT)) {
-            Write-Error "The environment variable CATTLE_CA_CHECKSUM is set but there is no CA certificate configured at $( $env:CATTLE_SERVER )/$( $caCertsPath )) "
+            Write-LogError "The environment variable CATTLE_CA_CHECKSUM is set but there is no CA certificate configured at $( $env:CATTLE_SERVER )/$( $caCertsPath )) "
             exit 1
         }
 
         if ($LASTEXITCODE -ne 0) {
-            Write-Error "Value from $( $env:CATTLE_SERVER )/$( $caCertsPath ) does not look like an x509 certificate, exited with $( $LASTEXITCODE ) "
-            Write-Error "Retrieved cacerts:"
+            Write-LogError "Value from $( $env:CATTLE_SERVER )/$( $caCertsPath ) does not look like an x509 certificate, exited with $( $LASTEXITCODE ) "
+            Write-LogError "Retrieved cacerts:"
             Get-Content $env:RANCHER_CERT
             exit 1
         }

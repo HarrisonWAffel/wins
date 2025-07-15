@@ -349,12 +349,12 @@ function Get-LatestCommitOrTag {
     return $(git rev-parse --short HEAD)
 }
 
-function CleanupCertFile() {
+function Cleanup-CertFile() {
     $path = "$PSScriptRoot\testcert.pem"
-    Remove-Item -Path $path -Force
+    Remove-Item -Path $path -Force -ErrorAction Ignore
 }
 
-function SetupCertFiles() {
+function Setup-CertFiles() {
     param (
         [Parameter()]
         [int]
@@ -370,14 +370,7 @@ function SetupCertFiles() {
         Log-Info "Failed to generate root certificate"
         exit 1
     }
-
     Log-Info "Generated root CA certificate"
-    if ($length -eq 1) {
-        $block = getCertString -cert $root
-        Set-Content -Path $certFilePath -Value $block
-        Log-Info "Generated single root CA certificate"
-        return
-    }
 
     [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$certChain = @()
     $certChain += ($root)
@@ -399,14 +392,15 @@ function SetupCertFiles() {
         }
     }
 
+    $finalCertFile = ""
     Log-Info "Generated $length certificates"
     foreach ($cert in $certChain) {
         $block = getCertString -cert $cert
-        $finalCertFile = $finalCertFile + $block
+        $finalCertFile = $finalCertFile.Trim() + "`n" + $block.Trim()
     }
 
-    # write final cert file to disk
-    Set-Content -Path $certFilePath -Value $finalCertFile
+    # write final cert file to disk to generate a hash
+    Set-Content -NoNewline -Path $certFilePath -Value $finalCertFile
 
     $thumbPrints = @()
 
@@ -418,7 +412,7 @@ function SetupCertFiles() {
 
     Log-Info "Deleted all certs from cert stores"
     $shasum = (Get-FileHash -Path $certFilePath -Algorithm SHA256).Hash.ToLower()
-    Log-Info "Computed sha256 sum of $shasum"
+    Log-Info "Computed sha256 sum of the final cert file is: $shasum"
 
     return [PSCustomObject]@{
         FinalCertBlocks = $finalCertFile
@@ -440,14 +434,10 @@ function getCertString() {
     }
 
     $base64Content = [System.Convert]::ToBase64String($cert.RawData, 'InsertLineBreaks')
-    # The whitespace below is required
-    # to ensure that newlines are properly added between
-    # entries
     $newBlock = @"
 -----BEGIN CERTIFICATE-----
 $base64Content
 -----END CERTIFICATE-----
-
 "@
 
     return $newBlock
@@ -488,24 +478,8 @@ function newCert() {
     return $null
 }
 
-function PrependToFile() {
-    param (
-        [Parameter()]
-        [string]
-        $path,
-
-        [Parameter()]
-        [string]
-        $value
-    )
-    $oldContent = Get-Content $path
-    $newContent = $value + "`n" + $oldContent
-    Set-Content -Path $path -Value $newContent
-}
-
-Export-ModuleMember -Function PrependToFile
-Export-ModuleMember -Function SetupCertFiles
-Export-ModuleMember -Function CleanupCertFile
+Export-ModuleMember -Function Setup-CertFiles
+Export-ModuleMember -Function Cleanup-CertFile
 Export-ModuleMember -Function Log-Info
 Export-ModuleMember -Function Log-Warn
 Export-ModuleMember -Function Log-Error

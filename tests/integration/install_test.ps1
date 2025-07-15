@@ -27,9 +27,11 @@ Describe "install" {
         # Rancher will mutate the install script to both add environment variables, and to call
         # the primary function 'Invoke-WinsInstaller'. As this is an integration test, we need to manually
         # update the install script ourselves.
-        Add-Content -Path ./installer-test.ps1 -Value '$env:CATTLE_REMOTE_ENABLED = "false"'
-        Add-Content -Path ./installer-test.ps1 -Value '$env:CATTLE_LOCAL_ENABLED = "true"'
+        $env:CATTLE_REMOTE_ENABLED = "false"
+        $env:CATTLE_LOCAL_ENABLED = "true"
         Add-Content -Path ./installer-test.ps1 -Value "Invoke-WinsInstaller"
+        # reset the agent directory
+        Remove-Item "C:/etc/rancher/wins" -Force -ErrorAction Ignore
 
         .\installer-test.ps1
     }

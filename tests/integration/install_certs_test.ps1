@@ -34,8 +34,25 @@ $StartMockRancherHandler = {
 }
 
 Describe "Install script certificate tests" {
+    BeforeEach {
+        # Create a test specific copy of the install script
+        # as the environment variables being set may differ between tests
+        Copy-Item install.ps1 install-certs-test.ps1 -Force
+
+        # note: Simply running the install script does not do anything. During normal provisioning,
+        # Rancher will mutate the install script to both add environment variables, and to call
+        # the primary function 'Invoke-WinsInstaller'. As this is an integration test, we need to manually
+        # update the install script ourselves.
+        Add-Content -Path ./install-certs-test.ps1 -Value '$env:CATTLE_REMOTE_ENABLED = "false"'
+        Add-Content -Path ./install-certs-test.ps1 -Value '$env:CATTLE_LOCAL_ENABLED = "true"'
+        # reset the agent directory
+        Remove-Item "C:/etc/rancher/wins" -Force -ErrorAction Ignore
+    }
+
     AfterEach {
-        CleanupCertFile
+        Cleanup-CertFile
+        $env:CATTLE_CA_CHECKSUM = ""
+        $env:CATTLE_SERVER = ""
         Log-Info "Running uninstall script"
         try {
             # note: since this script may not be run by an administrator, it's possible that it might fail
@@ -47,42 +64,29 @@ Describe "Install script certificate tests" {
         }
     }
 
-    BeforeEach {
-        # Create a test specific copy of the install script
-        # as the environment variables being set may differ between tests
-        Copy-Item install.ps1 install-certs-test.ps1 -Force
-
-        # note: Simply running the install script does not do anything. During normal provisioning,
-        # Rancher will mutate the install script to both add environment variables, and to call
-        # the primary function 'Invoke-WinsInstaller'. As this is an integration test, we need to manually
-        # update the install script ourselves.
-        Add-Content -Path ./installer-test.ps1 -Value '$env:CATTLE_REMOTE_ENABLED = "false"'
-        Add-Content -Path ./installer-test.ps1 -Value '$env:CATTLE_LOCAL_ENABLED = "true"'
-        Add-Content -Path ./install-certs-test.ps1 -Value "Invoke-WinsInstaller"
-    }
-
-
     It "Imports a single cert properly" {
         Log-Info "TEST: [Imports a single cert properly]"
         $expectedCertificates = 1
-        $certData = SetupCertFiles -length $expectedCertificates
+        $certData = Setup-CertFiles -length $expectedCertificates
+        $certData.ThumbPrints.Length | Should -BeExactly $expectedCertificates
 
         # Quick sanity check to ensure utility function properly removed
         # certificates from the built-in stores
         Log-Info "Ensuring that certs are not yet imported"
+        $certStore = [System.Security.Cryptography.X509Certificates.X509Store]::new([System.Security.Cryptography.X509Certificates.StoreName]::Root, "LocalMachine")
+        $certStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::MaxAllowed)
         foreach ($thumbPrint in $certData.ThumbPrints)
         {
             Log-Info "Ensuring cert with thumb print of $thumbPrint is not imported yet"
             $found = $certStore.Certificates.Find('FindByThumbprint', $thumbPrint, $false)
             $found.Count | Should -Be -ExpectedValue 0
-            Log-Info "Cert with thumb print of $thumbPrint was not found in cert store"
+            Log-Info "Confirmed that cert with thumb print of $thumbPrint has not been imported yet"
         }
 
         $checkSum = $certData.Checksum
-        PrependToFile -path "install-certs-test.ps1" -value "`$env:CATTLE_CA_CHECKSUM = `"$checkSum`""
-
-        $content = Get-Content "install-certs-test.ps1"
-        Log-Info $content
+        Add-Content -Path install-certs-test.ps1 -Value "`$env:CATTLE_CA_CHECKSUM = `"$checkSum`""
+        Add-Content -Path install-certs-test.ps1 -Value "`$env:CATTLE_SERVER = `"http://localhost:8080`""
+        Add-Content -Path install-certs-test.ps1 -Value "Invoke-WinsInstaller"
 
         # Start a mock Rancher API to mimic the /cacerts endpoint
         Log-Info "Starting mock Rancher API"
@@ -90,28 +94,34 @@ Describe "Install script certificate tests" {
         Start-Sleep 1
         Get-Job
         if ($job.State -ne "Running") {
+            # display job output to help debug job failure
+            Log-Error "Mock Rancher server failed to start"
             $job | Receive-Job
             $job.State | Should -Be -ExpectedValue "Running"
         }
 
         Log-Info "Invoking install script function"
         .\install-certs-test.ps1
-        $LASTEXITCODE | Should -Be -ExpectedValue 0
+        $installScriptExitCode = $LASTEXITCODE
 
         # Stop the HTTP server
         Log-Info "Stopping mock server"
         curl.exe -sS http://localhost:8080/kill
         Remove-Job -Id $job.Id -Force
 
-        Log-Info "Confirming that certs have been properly imported..."
-        $certStore = [System.Security.Cryptography.X509Certificates.X509Store]::new([System.Security.Cryptography.X509Certificates.StoreName]::Root, "LocalMachine")
-        $certStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::MaxAllowed)
+        Log-Info "Install script exited with code $installScriptExitCode"
+        $installScriptExitCode | Should -Be -ExpectedValue 0
 
+        Log-Info "Confirming that certs have been properly imported..."
         foreach ($thumbPrint in $certData.ThumbPrints)
         {
             Log-Info "Checking cert with thumb print of $thumbPrint"
             $found = $certStore.Certificates.Find('FindByThumbprint', $thumbPrint, $false)
-            $found.Count | Should -Be -ExpectedValue 1
+            if ($found.Count -ne 1)
+            {
+                Log-Error "Could not find cert with thumbprint of $thumbPrint"
+                $found.Count | Should -Be -ExpectedValue 1
+            }
             Log-Info "Found $thumbPrint"
         }
 
@@ -122,13 +132,15 @@ Describe "Install script certificate tests" {
     It "Imports a chain properly" {
         Log-Info "TEST: [Imports a chain properly]"
         $expectedCertificates = 3
-        $certData = SetupCertFiles -length $expectedCertificates
+        $certData = Setup-CertFiles -length $expectedCertificates
+        $certData.ThumbPrints.Length | Should -BeExactly $expectedCertificates
 
         # Quick sanity check to ensure utility function properly removed
         # certificates from the built-in stores
         Log-Info "Ensuring that certs are not yet imported"
 
-        $certData.ThumbPrints.Length | Should -BeGreaterThan 0
+        $certStore = [System.Security.Cryptography.X509Certificates.X509Store]::new([System.Security.Cryptography.X509Certificates.StoreName]::Root, "LocalMachine")
+        $certStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::MaxAllowed)
         foreach ($thumbPrint in $certData.ThumbPrints)
         {
             Log-Info "Ensuring cert with thumb print of $thumbPrint is not imported yet"
@@ -137,42 +149,44 @@ Describe "Install script certificate tests" {
         }
 
         $checkSum = $certData.Checksum
-        PrependToFile -path "install-certs-test.ps1" -value "`$env:CATTLE_CA_CHECKSUM = `"$checkSum`""
-
-        $content = Get-Content "install-certs-test.ps1"
-        Log-Info $content
+        Add-Content -Path install-certs-test.ps1 -Value "`$env:CATTLE_CA_CHECKSUM = `"$checkSum`""
+        Add-Content -Path install-certs-test.ps1 -Value "`$env:CATTLE_SERVER = `"http://localhost:8080`""
+        Add-Content -Path install-certs-test.ps1 -Value "Invoke-WinsInstaller"
 
         Log-Info "Starting mock Rancher API"
         $job = Start-Job -ScriptBlock $StartMockRancherHandler -ArgumentList $certData.FinalCertBlocks
         Start-Sleep 1
         Get-Job
         if ($job.State -ne "Running") {
-            # display job output
+            # display job output to help debug job failure
+            Log-Error "Mock Rancher server failed to start"
             $job | Receive-Job
             $job.State | Should -Be -ExpectedValue "Running"
         }
 
         Log-Info "Invoking install script"
-
         .\install-certs-test.ps1
-        $LASTEXITCODE | Should -Be -ExpectedValue 0
+        $installScriptExitCode = $LASTEXITCODE
 
         # Stop the HTTP server
         Log-Info "Stopping mock server"
         curl.exe -sS http://localhost:8080/kill
         Remove-Job -Id $job.Id -Force
 
-        Log-Info "Confirming that certs have been properly imported..."
-        $certStore = [System.Security.Cryptography.X509Certificates.X509Store]::new([System.Security.Cryptography.X509Certificates.StoreName]::Root, "LocalMachine")
-        $certStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::MaxAllowed)
+        Log-Info "Install script exited with code $installScriptExitCode"
+        $installScriptExitCode | Should -Be -ExpectedValue 0
 
-        $certData.ThumbPrints.Length | Should -BeGreaterThan 0
+        Log-Info "Confirming that certs have been properly imported..."
         foreach ($thumbPrint in $certData.ThumbPrints)
         {
-            Log-Info "Checking cert with thumb print of $thumbPrint"
+            Log-Info "Confirming that cert with thumb print of $thumbPrint has been imported"
             $found = $certStore.Certificates.Find('FindByThumbprint', $thumbPrint, $false)
-            $found.Count | Should -Be -ExpectedValue 1
-            Log-Info "Found $thumbPrint"
+            if ($found.Count -ne 1)
+            {
+                Log-Error "Did not find cert with thumb print of: $thumbPrint"
+                $found.Count | Should -Be -ExpectedValue 1
+            }
+            Log-Info "Cert with thumbprint of $thumbPrint was properly imported"
         }
 
         $certStore.Close()
