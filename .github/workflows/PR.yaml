@@ -12,23 +12,12 @@ jobs:
       fail-fast: false
       matrix:
         platform: [windows-2022]
-    env:
-      GOCACHE: D:\gocache
-      GOMODCACHE: D:\gomodcache
-      GOTMPDIR: D:\gotmp
+
     runs-on: ${{ matrix.platform }}
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
-      # Use the D:/ drive instead of C:/ as
-      # it has much better performance. Greatly
-      # reduces install time of Go.
-    - name: Create Cache Dir for Go Install
-      run: |
-        mkdir D:\gotmp
-      shell: pwsh
 
     # This step is required otherwise the 'mage'
     # command cannot be used in subsequent steps
@@ -36,6 +25,7 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: 'stable'
+        cache: 'false'
 
     - name: Install Dependencies
       run: |
