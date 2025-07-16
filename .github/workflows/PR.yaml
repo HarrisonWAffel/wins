@@ -12,12 +12,10 @@ jobs:
       fail-fast: false
       matrix:
         platform: [windows-2022]
-
     env:
       GOCACHE: D:\gocache
       GOMODCACHE: D:\gomodcache
       GOTMPDIR: D:\gotmp
-
     runs-on: ${{ matrix.platform }}
 
     steps:
